@@ -12,6 +12,7 @@ import it.unive.jlisa.frontend.visitors.expression.TypeASTVisitor;
 import it.unive.jlisa.frontend.visitors.scope.ClassScope;
 import it.unive.jlisa.frontend.visitors.statement.BlockStatementASTVisitor;
 import it.unive.jlisa.program.cfg.JavaCodeMemberDescriptor;
+import it.unive.jlisa.program.cfg.JavaParameter;
 import it.unive.jlisa.program.cfg.statement.JavaAssignment;
 import it.unive.jlisa.program.cfg.statement.global.JavaAccessInstanceGlobal;
 import it.unive.jlisa.program.type.JavaClassType;
@@ -219,8 +220,8 @@ class MethodASTVisitor extends ScopedVisitor<ClassScope> implements ResultHolder
 		List<Parameter> parameters = new ArrayList<Parameter>();
 		if (instance) {
 			it.unive.lisa.type.Type type = getProgram().getTypes().getType(getScope().getLisaClassUnit().getName());
-			parameters.add(new Parameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
-					new Annotations()));
+			parameters.add(new JavaParameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
+					new Annotations(), false));
 		}
 
 		for (Object o : node.parameters()) {
@@ -232,7 +233,7 @@ class MethodASTVisitor extends ScopedVisitor<ClassScope> implements ResultHolder
 
 		// TODO annotations
 		Annotations annotations = new Annotations();
-		Parameter[] paramArray = parameters.toArray(new Parameter[0]);
+		Parameter[] paramArray = parameters.toArray(new JavaParameter[0]);
 		codeMemberDescriptor = new JavaCodeMemberDescriptor(loc, getScope().getLisaClassUnit(), instance,
 				node.getName().getIdentifier(),
 				returnType.isInMemoryType() ? new JavaReferenceType(returnType) : returnType, annotations, paramArray);
@@ -254,14 +255,14 @@ class MethodASTVisitor extends ScopedVisitor<ClassScope> implements ResultHolder
 		it.unive.lisa.type.Type type = getProgram().getTypes().getType(getScope().getLisaClassUnit().getName());
 
 		List<Parameter> parameters = new ArrayList<>();
-		parameters.add(new Parameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
-				new Annotations()));
+		parameters.add(new JavaParameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
+				new Annotations(), false));
 
 		if (getScope().getEnclosingClass() != null)
 			parameters
-					.add(new Parameter(getSourceCodeLocationManager(node).nextColumn(), "$enclosing",
+					.add(new JavaParameter(getSourceCodeLocationManager(node).nextColumn(), "$enclosing",
 							getScope().getEnclosingClass().getReference(),
-							null, new Annotations()));
+							null, new Annotations(), false));
 
 		for (Object o : node.parameters()) {
 			SingleVariableDeclaration sd = (SingleVariableDeclaration) o;
@@ -272,7 +273,7 @@ class MethodASTVisitor extends ScopedVisitor<ClassScope> implements ResultHolder
 
 		// TODO annotations
 		Annotations annotations = new Annotations();
-		Parameter[] paramArray = parameters.toArray(new Parameter[0]);
+		Parameter[] paramArray = parameters.toArray(new JavaParameter[0]);
 		codeMemberDescriptor = new JavaCodeMemberDescriptor(loc, getScope().getLisaClassUnit(), instance,
 				node.getName().getIdentifier(), VoidType.INSTANCE, annotations, paramArray);
 		if (node.isConstructor() || Modifier.isStatic(node.getModifiers())) {

@@ -2,6 +2,7 @@ package it.unive.jlisa.program.java.constructs.system;
 
 import it.unive.jlisa.frontend.InitializedClassSet;
 import it.unive.jlisa.program.cfg.JavaCodeMemberDescriptor;
+import it.unive.jlisa.program.cfg.JavaParameter;
 import it.unive.jlisa.program.cfg.SyntheticCodeLocation;
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.type.JavaClassType;
@@ -19,7 +20,6 @@ import it.unive.lisa.program.SourceCodeLocation;
 import it.unive.lisa.program.cfg.CFG;
 import it.unive.lisa.program.cfg.CodeLocation;
 import it.unive.lisa.program.cfg.NativeCFG;
-import it.unive.lisa.program.cfg.Parameter;
 import it.unive.lisa.program.cfg.statement.Expression;
 import it.unive.lisa.program.cfg.statement.NaryExpression;
 import it.unive.lisa.program.cfg.statement.PluggableStatement;
@@ -40,7 +40,7 @@ public class SystemClassInitializer extends NativeCFG implements PluggableStatem
 
 		super(new JavaCodeMemberDescriptor(location, objectUnit, false, "System" + InitializedClassSet.SUFFIX_CLINIT,
 				VoidType.INSTANCE,
-				new Parameter[0]),
+				new JavaParameter[0]),
 				SystemClassInitializer.SystemClInit.class);
 	}
 

@@ -1,12 +1,15 @@
 package it.unive.jlisa.program.language.resolution;
 
 import it.unive.jlisa.program.type.JavaClassType;
+import it.unive.jlisa.program.cfg.JavaParameter;
+import it.unive.jlisa.program.type.JavaArrayType;
 import it.unive.lisa.program.cfg.Parameter;
 import it.unive.lisa.program.cfg.statement.Expression;
 import it.unive.lisa.program.cfg.statement.call.Call;
 import it.unive.lisa.program.cfg.statement.call.Call.CallType;
-import it.unive.lisa.program.language.resolution.FixedOrderMatchingStrategy;
+import it.unive.lisa.program.language.resolution.ParameterMatchingStrategy;
 import it.unive.lisa.type.Type;
+import it.unive.jlisa.program.type.JavaReferenceType;
 import it.unive.lisa.type.Untyped;
 import java.util.Set;
 
@@ -15,8 +18,7 @@ import java.util.Set;
  * type is untyped, we will fallback to the runtime type.
  */
 public class CustomJavaLikeMatchingStrategy
-		extends
-		FixedOrderMatchingStrategy {
+	implements ParameterMatchingStrategy {
 
 	/**
 	 * The singleton instance of this class.
@@ -27,6 +29,41 @@ public class CustomJavaLikeMatchingStrategy
 	}
 
 	@Override
+	public final boolean matches(
+			Call call,
+			Parameter[] formals,
+			Expression[] actuals,
+			Set<Type>[] types) {
+
+		if (formals.length > 0) {
+			JavaParameter last_parameter = (JavaParameter) formals[formals.length - 1];
+
+			// if last parameter is varargs then the number of actual
+			// arguments shall be >= formals.length - 1
+			if (last_parameter.getIsVarargs() && actuals.length < formals.length - 1) {
+				return false;
+			}
+
+			if (!last_parameter.getIsVarargs() && formals.length != actuals.length)
+				return false;
+		}
+
+		// for (int i = 0; i < formals.length; i++)
+		// 	if (!matches(call, i, formals[i], actuals[i], types[i]))
+		// 		return false;
+
+		int n = Math.max(actuals.length, formals.length);
+		for (int i = 0; i < n; i++) {
+			int againstFormal = Math.min(i, formals.length - 1);
+			if (i < actuals.length) {
+				if (!matches(call, i, formals[againstFormal], actuals[i], types[i]))
+					return false;
+			}
+		}
+
+		return true;
+	}
+
 	public boolean matches(
 			Call call,
 			int pos,
@@ -56,6 +93,16 @@ public class CustomJavaLikeMatchingStrategy
 		if (!actual.getStaticType().equals(Untyped.INSTANCE)
 				&& actual.getStaticType().canBeAssignedTo(formal.getStaticType()))
 			return true;
+
+		assert(formal instanceof JavaParameter);
+		JavaParameter parameter = (JavaParameter) formal;
+		if (parameter.getIsVarargs()) {
+			// TODO: convert formal to base only if the actual is not directly an array. Also in that case, type conversions are not applicable
+			assert(parameter.getStaticType() instanceof JavaReferenceType);
+			JavaArrayType arrType = (JavaArrayType) ((JavaReferenceType) parameter.getStaticType()).getInnerType();
+			Type base = arrType.getBaseType();
+			return base.equals(actual.getStaticType());
+		}
 
 		for (Type rType : types)
 			if (rType.canBeAssignedTo(formal.getStaticType()))

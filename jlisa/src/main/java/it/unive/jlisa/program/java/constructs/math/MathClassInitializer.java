@@ -2,6 +2,7 @@ package it.unive.jlisa.program.java.constructs.math;
 
 import it.unive.jlisa.frontend.InitializedClassSet;
 import it.unive.jlisa.program.cfg.JavaCodeMemberDescriptor;
+import it.unive.jlisa.program.cfg.JavaParameter;
 import it.unive.jlisa.program.type.JavaClassType;
 import it.unive.jlisa.program.type.JavaDoubleType;
 import it.unive.lisa.analysis.AbstractDomain;
@@ -16,7 +17,6 @@ import it.unive.lisa.program.ClassUnit;
 import it.unive.lisa.program.cfg.CFG;
 import it.unive.lisa.program.cfg.CodeLocation;
 import it.unive.lisa.program.cfg.NativeCFG;
-import it.unive.lisa.program.cfg.Parameter;
 import it.unive.lisa.program.cfg.statement.Expression;
 import it.unive.lisa.program.cfg.statement.NaryExpression;
 import it.unive.lisa.program.cfg.statement.PluggableStatement;
@@ -35,7 +35,7 @@ public class MathClassInitializer extends NativeCFG implements PluggableStatemen
 
 		super(new JavaCodeMemberDescriptor(location, objectUnit, false, "Math" + InitializedClassSet.SUFFIX_CLINIT,
 				VoidType.INSTANCE,
-				new Parameter[0]),
+				new JavaParameter[0]),
 				MathClassInitializer.SystemClInit.class);
 	}
 

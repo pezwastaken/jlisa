@@ -9,6 +9,7 @@ import it.unive.jlisa.frontend.visitors.expression.TypeASTVisitor;
 import it.unive.jlisa.frontend.visitors.scope.UnitScope;
 import it.unive.jlisa.frontend.visitors.structure.VariableDeclarationASTVisitor;
 import it.unive.jlisa.program.cfg.JavaCodeMemberDescriptor;
+import it.unive.jlisa.program.cfg.JavaParameter;
 import it.unive.jlisa.program.type.JavaClassType;
 import it.unive.jlisa.program.type.JavaInterfaceType;
 import it.unive.jlisa.program.type.JavaReferenceType;
@@ -177,8 +178,8 @@ public class InitCodeMembersASTVisitor extends ScopedVisitor<UnitScope> {
 		List<Parameter> parameters = new ArrayList<>();
 		if (instance) {
 			it.unive.lisa.type.Type type = getProgram().getTypes().getType(lisaCU.getName());
-			parameters.add(new Parameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
-					new Annotations()));
+			parameters.add(new JavaParameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
+					new Annotations(), false));
 		}
 
 		for (Object o : node.parameters()) {
@@ -190,7 +191,7 @@ public class InitCodeMembersASTVisitor extends ScopedVisitor<UnitScope> {
 
 		// TODO annotations
 		Annotations annotations = new Annotations();
-		Parameter[] paramArray = parameters.toArray(new Parameter[0]);
+		Parameter[] paramArray = parameters.toArray(new JavaParameter[0]);
 		codeMemberDescriptor = new JavaCodeMemberDescriptor(loc, lisaCU, instance,
 				node.getName().getIdentifier(),
 				returnType.isInMemoryType() ? new JavaReferenceType(returnType) : returnType, annotations, paramArray);
@@ -214,13 +215,13 @@ public class InitCodeMembersASTVisitor extends ScopedVisitor<UnitScope> {
 		it.unive.lisa.type.Type type = getProgram().getTypes().getType(lisaCU.getName());
 
 		List<Parameter> parameters = new ArrayList<>();
-		parameters.add(new Parameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
-				new Annotations()));
+		parameters.add(new JavaParameter(getSourceCodeLocation(node), "this", new JavaReferenceType(type), null,
+				new Annotations(), false));
 
 		if (enclosing != null)
-			parameters.add(new Parameter(getSourceCodeLocationManager(node).nextColumn(), "$enclosing",
+			parameters.add(new JavaParameter(getSourceCodeLocationManager(node).nextColumn(), "$enclosing",
 					enclosing.getReference(),
-					null, new Annotations()));
+					null, new Annotations(), false));
 
 		for (Object o : node.parameters()) {
 			SingleVariableDeclaration sd = (SingleVariableDeclaration) o;

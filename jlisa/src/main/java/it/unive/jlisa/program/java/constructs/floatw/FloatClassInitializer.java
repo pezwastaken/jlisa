@@ -2,6 +2,7 @@ package it.unive.jlisa.program.java.constructs.floatw;
 
 import it.unive.jlisa.frontend.InitializedClassSet;
 import it.unive.jlisa.program.cfg.JavaCodeMemberDescriptor;
+import it.unive.jlisa.program.cfg.JavaParameter;
 import it.unive.jlisa.program.type.JavaFloatType;
 import it.unive.lisa.analysis.AbstractDomain;
 import it.unive.lisa.analysis.AbstractLattice;
@@ -15,7 +16,6 @@ import it.unive.lisa.program.ClassUnit;
 import it.unive.lisa.program.cfg.CFG;
 import it.unive.lisa.program.cfg.CodeLocation;
 import it.unive.lisa.program.cfg.NativeCFG;
-import it.unive.lisa.program.cfg.Parameter;
 import it.unive.lisa.program.cfg.statement.Expression;
 import it.unive.lisa.program.cfg.statement.NaryExpression;
 import it.unive.lisa.program.cfg.statement.PluggableStatement;
@@ -35,7 +35,7 @@ public class FloatClassInitializer extends NativeCFG implements PluggableStateme
 		super(new JavaCodeMemberDescriptor(location, objectUnit, false,
 				"Float" + InitializedClassSet.SUFFIX_CLINIT,
 				VoidType.INSTANCE,
-				new Parameter[0]),
+				new JavaParameter[0]),
 				FloatClassInitializer.FloatClInit.class);
 	}
 

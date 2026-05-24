@@ -12,6 +12,7 @@ import it.unive.jlisa.frontend.visitors.expression.TypeASTVisitor;
 import it.unive.jlisa.frontend.visitors.scope.ClassScope;
 import it.unive.jlisa.frontend.visitors.scope.MethodScope;
 import it.unive.jlisa.program.SyntheticCodeLocationManager;
+import it.unive.jlisa.program.cfg.JavaParameter;
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.cfg.expression.JavaUnresolvedCall;
 import it.unive.jlisa.program.cfg.expression.JavaUnresolvedStaticCall;
@@ -122,7 +123,7 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 				simpleName + InitializedClassSet.SUFFIX_CLINIT,
 				VoidType.INSTANCE,
 				new Annotations(),
-				new Parameter[0]);
+				new JavaParameter[0]);
 		CFG cfg = new CFG(cmDesc);
 
 		// in the main method, we instantiate enum constants
@@ -159,13 +160,13 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 		SyntheticCodeLocationManager locationManager = getParserContext()
 				.getCurrentSyntheticCodeLocationManager(getSource());
 		List<Parameter> parameters = new ArrayList<>();
-		parameters.add(new Parameter(locationManager.nextLocation(), "this", new JavaReferenceType(type), null,
-				new Annotations()));
-		parameters.add(new Parameter(locationManager.nextLocation(), "name",
-				new JavaReferenceType(getProgram().getTypes().getStringType()), null, new Annotations()));
+		parameters.add(new JavaParameter(locationManager.nextLocation(), "this", new JavaReferenceType(type), null,
+				new Annotations(), false));
+		parameters.add(new JavaParameter(locationManager.nextLocation(), "name",
+				new JavaReferenceType(getProgram().getTypes().getStringType()), null, new Annotations(), false));
 
 		Annotations annotations = new Annotations();
-		Parameter[] paramArray = parameters.toArray(new Parameter[0]);
+		Parameter[] paramArray = parameters.toArray(new JavaParameter[0]);
 		String simpleName = enumUnit.getName().contains(".")
 				? enumUnit.getName().substring(enumUnit.getName().lastIndexOf(".") + 1)
 				: enumUnit.getName();
@@ -218,7 +219,7 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 				simpleName + InitializedClassSet.SUFFIX_CLINIT,
 				VoidType.INSTANCE,
 				new Annotations(),
-				new Parameter[0]);
+				new JavaParameter[0]);
 		CFG cfg = new CFG(cmDesc);
 
 		// first, we add the clinit call to the superclass
@@ -299,16 +300,16 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 		List<Parameter> parameters = new ArrayList<>();
 		SyntheticCodeLocationManager locationManager = getParserContext()
 				.getCurrentSyntheticCodeLocationManager(getSource());
-		parameters.add(new Parameter(locationManager.nextLocation(), "this", new JavaReferenceType(type), null,
-				new Annotations()));
+		parameters.add(new JavaParameter(locationManager.nextLocation(), "this", new JavaReferenceType(type), null,
+				new Annotations(), false));
 
 		if (getScope().getEnclosingClass() != null)
-			parameters.add(new Parameter(locationManager.nextLocation(), "$enclosing",
+			parameters.add(new JavaParameter(locationManager.nextLocation(), "$enclosing",
 					getScope().getEnclosingClass().getReference(),
-					null, new Annotations()));
+					null, new Annotations(), false));
 
 		Annotations annotations = new Annotations();
-		Parameter[] paramArray = parameters.toArray(new Parameter[0]);
+		Parameter[] paramArray = parameters.toArray(new JavaParameter[0]);
 		String simpleName = classUnit.getName().contains(".")
 				? classUnit.getName().substring(classUnit.getName().lastIndexOf(".") + 1)
 				: classUnit.getName();
