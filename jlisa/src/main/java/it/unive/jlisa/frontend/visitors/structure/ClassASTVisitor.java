@@ -19,6 +19,7 @@ import it.unive.jlisa.program.cfg.statement.JavaAssignment;
 import it.unive.jlisa.program.cfg.statement.global.JavaAccessGlobal;
 import it.unive.jlisa.program.cfg.statement.global.JavaAccessInstanceGlobal;
 import it.unive.jlisa.program.cfg.statement.literal.JavaStringLiteral;
+import it.unive.jlisa.program.type.JavaClassType;
 import it.unive.jlisa.program.type.JavaReferenceType;
 import it.unive.lisa.program.ClassUnit;
 import it.unive.lisa.program.Global;
@@ -42,6 +43,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import org.eclipse.jdt.core.dom.AnonymousClassDeclaration;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -102,6 +106,37 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 		if (createDefaultConstructor) {
 			CFG defaultConstructor = createDefaultConstructor((ClassUnit) getScope().getLisaClassUnit());
 			fixConstructorCFG(defaultConstructor, node.getFields());
+		}
+
+		return false;
+	}
+
+	@Override
+	public boolean visit(AnonymousClassDeclaration node) {
+
+		boolean createDefaultConstructor = true;
+
+		for (Object decl : node.bodyDeclarations()) {
+			if (decl instanceof MethodDeclaration) {
+			    MethodDeclaration md = (MethodDeclaration) decl;
+			    CFG cfg = getParserContext().evaluate(
+				    md,
+				    () -> new MethodASTVisitor(getEnvironment(), getScope()));
+
+			    if (md.isConstructor()) {
+				createDefaultConstructor = false;
+				// anonymous classes theoretically can't have explicit constructors
+			    }
+			} else if (decl instanceof FieldDeclaration) {
+			    // Process fields if necessary
+			}
+		}
+
+		// 2. Build the synthetic constructor
+		if (createDefaultConstructor) {
+			CFG defaultConstructor = createDefaultConstructor((ClassUnit) getScope().getLisaClassUnit());
+			// You'll need to pass the fields of the anonymous class to fixConstructorCFG
+			fixConstructorCFG(defaultConstructor, new FieldDeclaration[0]);
 		}
 
 		return false;
@@ -440,4 +475,110 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 			}
 		}
 	}
+
+	public CFG createAnonymousConstructor(
+		JavaClassType type,
+		ClassInstanceCreation node,
+		List<it.unive.lisa.type.Type> argTypes) {
+
+		ClassUnit classUnit = (ClassUnit) type.getUnit();
+
+		List<Parameter> parameters = new ArrayList<>();
+		SyntheticCodeLocationManager locationManager = getParserContext()
+		.getCurrentSyntheticCodeLocationManager(getSource());
+
+		// this param
+		parameters.add(new Parameter(locationManager.nextLocation(), "this",
+		new JavaReferenceType(type), null, new Annotations()));
+
+		// $enclosing param
+		if (getScope().getEnclosingClass() != null) {
+			parameters.add(new Parameter(locationManager.nextLocation(), "$enclosing",
+			getScope().getEnclosingClass().getReference(), null, new Annotations()));
+		}
+
+		// super constructor arguments
+		for (int i = 0; i < argTypes.size(); i++) {
+			it.unive.lisa.type.Type argType = argTypes.get(i);
+			// it.unive.lisa.type.Type paramType = argType.isInMemoryType() ? new JavaReferenceType(argType) : argType;
+
+			parameters.add(new Parameter(locationManager.nextLocation(), "$arg" + i,
+			argType, null, new Annotations()));
+		}
+
+		// create descriptor and CFG
+		Annotations annotations = new Annotations();
+		Parameter[] paramArray = parameters.toArray(new Parameter[0]);
+		String simpleName = classUnit.getName().contains(".")
+		? classUnit.getName().substring(classUnit.getName().lastIndexOf(".") + 1)
+		: classUnit.getName();
+
+		CodeMemberDescriptor codeMemberDescriptor = new CodeMemberDescriptor(
+		locationManager.nextLocation(), classUnit, true, simpleName,
+		VoidType.INSTANCE, annotations, paramArray);
+
+		CFG cfg = new CFG(codeMemberDescriptor);
+
+		// register local variable types
+		getParserContext().addVariableType(cfg, new VariableInfo("this", null), new JavaReferenceType(type));
+
+		if (getScope().getEnclosingClass() != null) {
+			getParserContext().addVariableType(cfg, new VariableInfo("$enclosing", null),
+			getScope().getEnclosingClass().getReference());
+		}
+
+		for (int i = 0; i < argTypes.size(); i++) {
+			it.unive.lisa.type.Type argType = argTypes.get(i);
+			it.unive.lisa.type.Type paramType = argType.isInMemoryType() ? new JavaReferenceType(argType) : argType;
+			getParserContext().addVariableType(cfg, new VariableInfo("$arg" + i, null), paramType);
+		}
+
+		// super ctor call
+		String superClassName = classUnit.getImmediateAncestors().stream()
+		.filter(s -> s instanceof ClassUnit).findFirst().get().getName();
+		String superClassSimpleName = superClassName.contains(".")
+		? superClassName.substring(superClassName.lastIndexOf(".") + 1)
+		: superClassName;
+
+		it.unive.lisa.program.cfg.statement.Expression[] superArgs = 
+		new it.unive.lisa.program.cfg.statement.Expression[argTypes.size() + 1];
+
+		superArgs[0] = new VariableRef(cfg, locationManager.nextLocation(), "this", new JavaReferenceType(type));
+		for (int i = 0; i < argTypes.size(); i++) {
+			it.unive.lisa.type.Type paramType = argTypes.get(i).isInMemoryType() ? new JavaReferenceType(argTypes.get(i)) : argTypes.get(i);
+			superArgs[i + 1] = new VariableRef(cfg, locationManager.nextLocation(), "$arg" + i, paramType);
+		}
+
+		JavaUnresolvedCall superCall = new JavaUnresolvedCall(cfg, locationManager.nextLocation(),
+		Call.CallType.INSTANCE, superClassName, superClassSimpleName, superArgs);
+
+		cfg.addNode(superCall);
+		cfg.getEntrypoints().add(superCall);
+
+		Statement last = superCall;
+
+		// assign $enclosing
+		if (getScope().getEnclosingClass() != null) {
+			JavaAssignment asg = new JavaAssignment(cfg, locationManager.nextLocation(),
+			new JavaAccessInstanceGlobal(cfg, locationManager.nextLocation(),
+				new VariableRef(cfg, locationManager.nextLocation(), "this", new JavaReferenceType(type)),
+				"$enclosing"),
+			new VariableRef(cfg, locationManager.nextLocation(), "$enclosing",
+				getScope().getEnclosingClass().getReference()));
+
+			cfg.addNode(asg);
+			cfg.addEdge(new SequentialEdge(last, asg));
+		last = asg;
+		}
+
+		Ret ret = new Ret(cfg, locationManager.nextLocation());
+		cfg.addNode(ret);
+		cfg.addEdge(new SequentialEdge(last, ret));
+
+		// fixcfg (?)
+
+		classUnit.addInstanceCodeMember(cfg);
+		return cfg;
+	}
+
 }

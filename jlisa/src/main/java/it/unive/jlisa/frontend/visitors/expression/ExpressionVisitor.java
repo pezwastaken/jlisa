@@ -3,11 +3,17 @@ package it.unive.jlisa.frontend.visitors.expression;
 import it.unive.jlisa.frontend.ParsingEnvironment;
 import it.unive.jlisa.frontend.exceptions.ParsingException;
 import it.unive.jlisa.frontend.exceptions.UnsupportedStatementException;
+import it.unive.jlisa.frontend.util.FQNUtils;
 import it.unive.jlisa.frontend.util.VariableInfo;
 import it.unive.jlisa.frontend.visitors.ResultHolder;
 import it.unive.jlisa.frontend.visitors.ScopedVisitor;
+import it.unive.jlisa.frontend.visitors.structure.*;
+import it.unive.jlisa.frontend.visitors.pipeline.InitCodeMembersASTVisitor;
+import it.unive.jlisa.frontend.visitors.pipeline.PopulateUnitsASTVisitor;
 import it.unive.jlisa.frontend.visitors.scope.ClassScope;
 import it.unive.jlisa.frontend.visitors.scope.MethodScope;
+import it.unive.jlisa.frontend.visitors.structure.ClassASTVisitor;
+import it.unive.jlisa.frontend.visitors.structure.FieldDeclarationVisitor;
 import it.unive.jlisa.program.SourceCodeLocationManager;
 import it.unive.jlisa.program.SyntheticCodeLocationManager;
 import it.unive.jlisa.program.cfg.expression.BitwiseNot;
@@ -49,6 +55,7 @@ import it.unive.jlisa.program.type.JavaClassType;
 import it.unive.jlisa.program.type.JavaInterfaceType;
 import it.unive.jlisa.program.type.JavaReferenceType;
 import it.unive.lisa.program.*;
+import it.unive.lisa.program.CompilationUnit;
 import it.unive.lisa.program.cfg.CFG;
 import it.unive.lisa.program.cfg.statement.Expression;
 import it.unive.lisa.program.cfg.statement.VariableRef;
@@ -68,11 +75,15 @@ import it.unive.lisa.program.cfg.statement.numeric.Negation;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.type.Untyped;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.lang3.function.TriFunction;
 import org.eclipse.jdt.core.dom.*;
+import org.eclipse.jdt.internal.compiler.ast.Argument;
 
 public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements ResultHolder<Expression> {
 	@FunctionalInterface
@@ -323,12 +334,12 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 	@Override
 	public boolean visit(
 			ClassInstanceCreation node) {
-		if (node.getAnonymousClassDeclaration() != null) {
-			throw new ParsingException("anonymous-class",
-					ParsingException.Type.UNSUPPORTED_STATEMENT,
-					"Anonymous classes are not supported.",
-					getSourceCodeLocation(node));
-		}
+		// if (node.getAnonymousClassDeclaration() != null) {
+		// 	throw new ParsingException("anonymous-class",
+		// 			ParsingException.Type.UNSUPPORTED_STATEMENT,
+		// 			"Anonymous classes are not supported.",
+		// 			getSourceCodeLocation(node));
+		// }
 		Type type = getParserContext().evaluate(node.getType(),
 				() -> new TypeASTVisitor(getEnvironment(), getScope().getParentScope().getUnitScope()));
 
@@ -337,6 +348,99 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 					ParsingException.Type.UNSUPPORTED_STATEMENT,
 					"A ClassInstanceCreation Type should be a JavaClassType; got: " + type.getClass().getName(),
 					getSourceCodeLocation(node));
+
+		if (node.getAnonymousClassDeclaration() != null) {
+
+			String methodName = getEnclosingMethodName(node);
+			String uniqueSimpleName = methodName + "$" + node.getStartPosition();
+
+			// register the class
+			String name = FQNUtils.buildFQN(getScope().getParentScope().getUnitScope().getPackage(), null, uniqueSimpleName);
+
+			ClassUnit cUnit = new ClassUnit(getSourceCodeLocation(node), getProgram(), name, false);
+
+			getProgram().addUnit(cUnit);
+			JavaClassType.register(cUnit.getName(), cUnit);
+			JavaClassType newAnonymousType = JavaClassType.lookup(name);
+			getProgram().getTypes().registerType(newAnonymousType);
+
+			JavaClassType enclosing = JavaClassType.lookup(getScope().getParentScope().getLisaClassUnit().getName());
+
+			ClassScope anonScope = new ClassScope(getScope().getParentScope().getUnitScope(), getScope().getParentScope(), enclosing, cUnit);
+
+			InitCodeMembersASTVisitor initMethodsVisitor = new InitCodeMembersASTVisitor(getEnvironment(), anonScope.getUnitScope());
+
+			AnonymousClassDeclaration anonClassNode = node.getAnonymousClassDeclaration();
+
+			Type ancestorType = type;
+
+			if (ancestorType instanceof JavaClassType) {
+				cUnit.addAncestor(((JavaClassType) ancestorType).getUnit());
+			} else if (ancestorType instanceof JavaInterfaceType) {
+				cUnit.addAncestor(((JavaInterfaceType) ancestorType).getUnit());
+
+				// interface implementors implicitly extend java.lang.Object
+				cUnit.addAncestor(JavaClassType.lookup("java.lang.Object").getUnit());
+			}
+
+
+			initMethodsVisitor.initCodeMembersInAnonymousClass(cUnit, anonClassNode, uniqueSimpleName, name, "");
+
+
+
+			// parse method body
+			MethodASTVisitor methodVisitor = new MethodASTVisitor(getEnvironment(), anonScope);
+
+			for (Object bodyDecl : anonClassNode.bodyDeclarations()) {
+				if (bodyDecl instanceof MethodDeclaration mdecl) {
+					mdecl.accept(methodVisitor);
+				}
+			}
+
+
+			// add the enclosing class field
+			Global g = new Global(getSourceCodeLocation(anonClassNode), cUnit, "$enclosing", true, enclosing.getReference());
+			cUnit.addInstanceGlobal(g);
+
+			ClassASTVisitor classVisitor = new ClassASTVisitor(getEnvironment(), anonScope);
+
+			List<Type> types = new ArrayList<Type>();
+
+			if (!node.arguments().isEmpty()) {
+				for (Object arg : node.arguments()) {
+
+					org.eclipse.jdt.core.dom.Expression argAST = (org.eclipse.jdt.core.dom.Expression) arg;
+
+					it.unive.lisa.program.cfg.statement.Expression lisaExpr = getParserContext().evaluate(
+						    argAST,
+						    () -> new ExpressionVisitor(getEnvironment(), getScope()));
+
+					it.unive.lisa.type.Type argType = lisaExpr.getStaticType();
+					types.add(argType);
+				}
+			}
+
+
+			classVisitor.createAnonymousConstructor(newAnonymousType, node, types);
+
+			type = newAnonymousType;
+
+			// Set<String> visitedFields = new HashSet<>();
+			//
+			// for (Object bodyDecl : anonDecl.bodyDeclarations()) {
+			// 	if (bodyDecl instanceof FieldDeclaration fdecl) {
+			// 		FieldDeclarationVisitor fieldVisitor = new FieldDeclarationVisitor(
+			// 		getEnvironment(),
+			// 		anonScope,
+			// 		visitedFields);
+			// 		fdecl.accept(fieldVisitor);
+			// 	}
+			// }
+
+			// ClassASTVisitor classVisitor = new ClassASTVisitor(getEnvironment(), anonScope);
+			// node.getAnonymousClassDeclaration().accept(classVisitor);
+
+		}
 
 		List<Expression> parameters = new LinkedList<>();
 
@@ -812,6 +916,24 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 	@Override
 	public Expression getResult() {
 		return expression;
+	}
+
+	private String getEnclosingMethodName(ASTNode current) {
+
+		MethodDeclaration enclosingMethod = null;
+
+		while (current != null) {
+		    if (enclosingMethod == null && current instanceof MethodDeclaration) {
+			enclosingMethod = (MethodDeclaration) current;
+			break;
+		    }
+		    current = current.getParent();
+		}
+
+		assert(enclosingMethod != null);
+
+		String methodName = enclosingMethod.getName().getIdentifier();
+		return methodName;
 	}
 
 }
