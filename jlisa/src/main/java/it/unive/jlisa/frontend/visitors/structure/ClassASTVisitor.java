@@ -479,7 +479,8 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 	public CFG createAnonymousConstructor(
 		JavaClassType type,
 		ClassInstanceCreation node,
-		List<it.unive.lisa.type.Type> argTypes) {
+		List<it.unive.lisa.type.Type> argTypes,
+		FieldDeclaration[] fields) {
 
 		ClassUnit classUnit = (ClassUnit) type.getUnit();
 
@@ -557,7 +558,7 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 
 		Statement last = superCall;
 
-		// assign $enclosing
+		// assign $enclosing (could be null in case of static enclosing class (?))
 		if (getScope().getEnclosingClass() != null) {
 			JavaAssignment asg = new JavaAssignment(cfg, locationManager.nextLocation(),
 				new JavaAccessInstanceGlobal(cfg, locationManager.nextLocation(),
@@ -573,11 +574,27 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 			last = asg;
 		}
 
+		for (FieldDeclaration field : fields) {
+
+			if (Modifier.isStatic(field.getModifiers()))
+				continue;
+
+			FieldInitializationVisitor initVisitor =
+				new FieldInitializationVisitor(getEnvironment(), getScope().toMethodScope(cfg, null, null));
+
+			field.accept(initVisitor);
+
+			if (initVisitor.getBlock() != null) {
+				cfg.getNodeList().mergeWith(initVisitor.getBlock());
+
+				cfg.addEdge(new SequentialEdge(last, initVisitor.getFirst()));
+				last = initVisitor.getLast();
+			}
+		}
+
 		Ret ret = new Ret(cfg, locationManager.nextLocation());
 		cfg.addNode(ret);
 		cfg.addEdge(new SequentialEdge(last, ret));
-
-		// fixcfg (?)
 
 		classUnit.addInstanceCodeMember(cfg);
 		return cfg;

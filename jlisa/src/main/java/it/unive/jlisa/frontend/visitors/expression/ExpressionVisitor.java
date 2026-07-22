@@ -388,16 +388,22 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 
 			initMethodsVisitor.initCodeMembersInAnonymousClass(cUnit, anonClassNode, uniqueSimpleName, name, "");
 
-			// parse method bodies
+			// parse method bodies and fields
 			MethodASTVisitor methodVisitor = new MethodASTVisitor(getEnvironment(), anonScope);
+			Set<FieldDeclaration> fieldDeclarationSet = new HashSet<>();
+			FieldDeclarationVisitor fieldVisitor = new FieldDeclarationVisitor(getEnvironment(), anonScope, new HashSet<>());
+
 			for (Object bodyDecl : anonClassNode.bodyDeclarations()) {
 				if (bodyDecl instanceof MethodDeclaration mdecl) {
 					mdecl.accept(methodVisitor);
 				}
+				if (bodyDecl instanceof FieldDeclaration fdecl) {
+					fdecl.accept(fieldVisitor);
+					fieldDeclarationSet.add(fdecl);
+				}
 			}
 
-
-			// TODO: fields
+			FieldDeclaration[] fieldArr = fieldDeclarationSet.toArray(new FieldDeclaration[0]);
 
 			// create the synthetic constructor. Anonymous classes can't have explicit ctors, hence we need to create one that is identical to the superclass one
 			ClassASTVisitor classVisitor = new ClassASTVisitor(getEnvironment(), anonScope);
@@ -419,7 +425,7 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 				}
 			}
 
-			classVisitor.createAnonymousConstructor(newAnonymousType, node, types);
+			classVisitor.createAnonymousConstructor(newAnonymousType, node, types, fieldArr);
 
 			// add the `$enclosing` argument to the ctor call. The `$enclosing` will be the current `this`.
 			// TODO: anonymous classes can have allocation qualifiers, like
