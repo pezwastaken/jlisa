@@ -560,15 +560,17 @@ public class ClassASTVisitor extends ScopedVisitor<ClassScope> {
 		// assign $enclosing
 		if (getScope().getEnclosingClass() != null) {
 			JavaAssignment asg = new JavaAssignment(cfg, locationManager.nextLocation(),
-			new JavaAccessInstanceGlobal(cfg, locationManager.nextLocation(),
-				new VariableRef(cfg, locationManager.nextLocation(), "this", new JavaReferenceType(type)),
-				"$enclosing"),
-			new VariableRef(cfg, locationManager.nextLocation(), "$enclosing",
-				getScope().getEnclosingClass().getReference()));
+				new JavaAccessInstanceGlobal(cfg, locationManager.nextLocation(),
+					new VariableRef(cfg, locationManager.nextLocation(), "this", new JavaReferenceType(type)),
+					"$enclosing"),
+
+				new VariableRef(cfg, locationManager.nextLocation(), "$enclosing",
+					getScope().getEnclosingClass().getReference())
+			);
 
 			cfg.addNode(asg);
 			cfg.addEdge(new SequentialEdge(last, asg));
-		last = asg;
+			last = asg;
 		}
 
 		Ret ret = new Ret(cfg, locationManager.nextLocation());

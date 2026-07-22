@@ -334,12 +334,7 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 	@Override
 	public boolean visit(
 			ClassInstanceCreation node) {
-		// if (node.getAnonymousClassDeclaration() != null) {
-		// 	throw new ParsingException("anonymous-class",
-		// 			ParsingException.Type.UNSUPPORTED_STATEMENT,
-		// 			"Anonymous classes are not supported.",
-		// 			getSourceCodeLocation(node));
-		// }
+
 		Type type = getParserContext().evaluate(node.getType(),
 				() -> new TypeASTVisitor(getEnvironment(), getScope().getParentScope().getUnitScope()));
 
@@ -348,6 +343,8 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 					ParsingException.Type.UNSUPPORTED_STATEMENT,
 					"A ClassInstanceCreation Type should be a JavaClassType; got: " + type.getClass().getName(),
 					getSourceCodeLocation(node));
+
+		List<Expression> parameters = new LinkedList<>();
 
 		if (node.getAnonymousClassDeclaration() != null) {
 
@@ -368,12 +365,15 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 
 			ClassScope anonScope = new ClassScope(getScope().getParentScope().getUnitScope(), getScope().getParentScope(), enclosing, cUnit);
 
-			InitCodeMembersASTVisitor initMethodsVisitor = new InitCodeMembersASTVisitor(getEnvironment(), anonScope.getUnitScope());
-
 			AnonymousClassDeclaration anonClassNode = node.getAnonymousClassDeclaration();
+
+			// add the enclosing class field
+			Global g = new Global(getSourceCodeLocation(anonClassNode), cUnit, "$enclosing", true, enclosing.getReference());
+			cUnit.addInstanceGlobal(g);
 
 			Type ancestorType = type;
 
+			// add the ancestor
 			if (ancestorType instanceof JavaClassType) {
 				cUnit.addAncestor(((JavaClassType) ancestorType).getUnit());
 			} else if (ancestorType instanceof JavaInterfaceType) {
@@ -383,14 +383,13 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 				cUnit.addAncestor(JavaClassType.lookup("java.lang.Object").getUnit());
 			}
 
+			// initialize the code member descriptors
+			InitCodeMembersASTVisitor initMethodsVisitor = new InitCodeMembersASTVisitor(getEnvironment(), anonScope.getUnitScope());
 
 			initMethodsVisitor.initCodeMembersInAnonymousClass(cUnit, anonClassNode, uniqueSimpleName, name, "");
 
-
-
-			// parse method body
+			// parse method bodies
 			MethodASTVisitor methodVisitor = new MethodASTVisitor(getEnvironment(), anonScope);
-
 			for (Object bodyDecl : anonClassNode.bodyDeclarations()) {
 				if (bodyDecl instanceof MethodDeclaration mdecl) {
 					mdecl.accept(methodVisitor);
@@ -398,14 +397,14 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 			}
 
 
-			// add the enclosing class field
-			Global g = new Global(getSourceCodeLocation(anonClassNode), cUnit, "$enclosing", true, enclosing.getReference());
-			cUnit.addInstanceGlobal(g);
+			// TODO: fields
 
+			// create the synthetic constructor. Anonymous classes can't have explicit ctors, hence we need to create one that is identical to the superclass one
 			ClassASTVisitor classVisitor = new ClassASTVisitor(getEnvironment(), anonScope);
 
 			List<Type> types = new ArrayList<Type>();
 
+			// get the types of the expressions passed to the anonymous class "ctor" call
 			if (!node.arguments().isEmpty()) {
 				for (Object arg : node.arguments()) {
 
@@ -420,29 +419,19 @@ public class ExpressionVisitor extends ScopedVisitor<MethodScope> implements Res
 				}
 			}
 
-
 			classVisitor.createAnonymousConstructor(newAnonymousType, node, types);
 
+			// add the `$enclosing` argument to the ctor call. The `$enclosing` will be the current `this`.
+			// TODO: anonymous classes can have allocation qualifiers, like
+			// `a.new AnonClass(...) {}`.
+			// In that case the `$enclosing` shall be the one node.getExpression() one.
+			// TODO: anonymous classes created inside a static methods.
+			Expression enclosingRef = new VariableRef(getScope().getCFG(), getSourceCodeLocation(node), "this", enclosing.getReference());
+			parameters.add(enclosingRef);
+
+			// the anonymous type will be the type of the JavaNewObj call
 			type = newAnonymousType;
-
-			// Set<String> visitedFields = new HashSet<>();
-			//
-			// for (Object bodyDecl : anonDecl.bodyDeclarations()) {
-			// 	if (bodyDecl instanceof FieldDeclaration fdecl) {
-			// 		FieldDeclarationVisitor fieldVisitor = new FieldDeclarationVisitor(
-			// 		getEnvironment(),
-			// 		anonScope,
-			// 		visitedFields);
-			// 		fdecl.accept(fieldVisitor);
-			// 	}
-			// }
-
-			// ClassASTVisitor classVisitor = new ClassASTVisitor(getEnvironment(), anonScope);
-			// node.getAnonymousClassDeclaration().accept(classVisitor);
-
 		}
-
-		List<Expression> parameters = new LinkedList<>();
 
 		if (node.getExpression() != null) {
 			// nested class creation, just pass the expression as first param
