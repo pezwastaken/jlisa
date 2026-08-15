@@ -46,7 +46,7 @@ public class JavaAnd extends And {
 			else if (sat == Satisfiability.SATISFIED) {
 				AnalysisState<A> rightState = getRight().forwardSemantics(leftState, interprocedural, expressions);
 				for (SymbolicExpression right : rightState.getExecutionExpressions())
-					result = result.lub(fwdBinarySemantics(interprocedural, state, left, right, expressions));
+					result = result.lub(fwdBinarySemantics(interprocedural, rightState, left, right, expressions));
 			} else {
 				AnalysisState<A> rightState = getRight().forwardSemantics(leftState, interprocedural, expressions);
 				expressions.put(getRight(), rightState);

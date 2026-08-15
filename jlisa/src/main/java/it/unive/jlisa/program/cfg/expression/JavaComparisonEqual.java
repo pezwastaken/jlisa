@@ -31,9 +31,9 @@ import it.unive.lisa.type.Untyped;
 import it.unive.lisa.program.cfg.statement.comparison.Equal;
 import it.unive.lisa.program.type.BoolType;
 
-public class JavaComparisonEquals extends Equal {
+public class JavaComparisonEqual extends Equal {
 
-	public JavaComparisonEquals(
+	public JavaComparisonEqual(
 			CFG cfg,
 			CodeLocation location,
 			Expression left,

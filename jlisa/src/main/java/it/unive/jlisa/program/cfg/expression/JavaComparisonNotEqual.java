@@ -50,7 +50,7 @@ public class JavaComparisonNotEqual extends NotEqual {
 
 		CodeLocation location = getLocation();
 
-		JavaComparisonEquals eq = new JavaComparisonEquals(getCFG(), location, getLeft(), getRight());
+		JavaComparisonEqual eq = new JavaComparisonEqual(getCFG(), location, getLeft(), getRight());
 		Not not = new Not(getCFG(), location, eq);
 		AnalysisState<A> tmp = not.forwardSemantics(state, interprocedural, expressions);
 
