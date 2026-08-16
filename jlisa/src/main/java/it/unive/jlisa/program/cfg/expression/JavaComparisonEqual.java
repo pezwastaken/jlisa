@@ -74,8 +74,7 @@ public class JavaComparisonEqual extends Equal {
 			if (Collections.disjoint(setl.elements, setr.elements)) {
 				c = new Constant(BoolType.INSTANCE, false, location);
 			}
-			// same set
-			else if (setl.elements().equals(setr.elements())) {
+			else if (setl.size() == 1 && setr.size() == 1 && setl.equals(setr)) {
 				c = new Constant(BoolType.INSTANCE, true, location);
 			}
 			else {
