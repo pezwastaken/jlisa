@@ -49,6 +49,8 @@ import java.util.function.Function;
 
 public class JavaNumericInterval extends Interval {
 
+	private static final Function<Double, Double> SIN = Math::sin;
+
 	@Override
 	public IntInterval evalConstant(
 			Constant constant,
@@ -202,6 +204,19 @@ public class JavaNumericInterval extends Interval {
 			max = Math.max(max, x);
 		}
 
+		int lb = (int) Math.floor(min);
+		int ub = (int) Math.ceil(max);
+
+		if (function == SIN) {
+			// if [a;b] is within (0;PI), we know that the lower bound is never
+			// going to be exactly 0.
+			if (a > 0.0 && b < Math.PI && lb == 0 && lb != ub) {
+				// we can safely move the lower bound to exclude 0
+				double lbTmp = Math.nextUp(0.0);
+				return new IntInterval(new MathNumber(lbTmp), new MathNumber(ub));
+			}
+		}
+
 		return new IntInterval((int) Math.floor(min), (int) Math.ceil(max));
 	}
 
@@ -242,7 +257,7 @@ public class JavaNumericInterval extends Interval {
 
 		// numeric
 		if (operator instanceof JavaMathSinOperator)
-			return trigonometric(arg, Math::sin, 4 * Math.PI);
+			return trigonometric(arg, SIN, 4 * Math.PI);
 		if (operator instanceof JavaMathCosOperator)
 			return trigonometric(arg, Math::cos, 4 * Math.PI);
 		if (operator instanceof JavaMathTanOperator)
