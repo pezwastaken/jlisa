@@ -33,6 +33,8 @@ import it.unive.lisa.symbolic.value.BinaryExpression;
 import it.unive.lisa.symbolic.value.Constant;
 import it.unive.lisa.symbolic.value.UnaryExpression;
 import it.unive.lisa.symbolic.value.ValueExpression;
+import it.unive.lisa.symbolic.value.operator.AdditionOperator;
+import it.unive.lisa.symbolic.value.operator.SubtractionOperator;
 import it.unive.lisa.symbolic.value.operator.binary.BinaryOperator;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonEq;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonGe;
@@ -473,6 +475,18 @@ public class JavaNumericInterval extends Interval {
 			return bottom();
 
 		BinaryOperator operator = expression.getOperator();
+
+		if (operator instanceof AdditionOperator) {
+			if (!left.isBottom() && !right.isBottom()) {
+				return new IntInterval(left.getLow().add(right.getLow()), left.getHigh().add(right.getHigh()));
+			}
+		}
+
+		if (operator instanceof SubtractionOperator) {
+			if (!left.isBottom() && !right.isBottom()) {
+				return new IntInterval(left.getLow().subtract(right.getHigh()), left.getHigh().subtract(right.getLow()));
+			}
+		}
 
 		if (operator instanceof JavaMathMax)
 			return new IntInterval(left.getLow().max(right.getLow()), left.getHigh().max(right.getHigh()));
