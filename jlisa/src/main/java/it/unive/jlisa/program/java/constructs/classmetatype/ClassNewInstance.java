@@ -83,7 +83,7 @@ public class ClassNewInstance extends it.unive.lisa.program.cfg.statement.UnaryE
 
 		AnalysisState<A> result = state.bottomExecution();
 		for (SymbolicExpression clazz : classes) {
-			result = result.lub(innerNewInstance(interprocedural, state, expr, expressions));
+			result = result.lub(innerNewInstance(interprocedural, state, clazz, expressions));
 		}
 		return result;
 	}
@@ -103,39 +103,13 @@ public class ClassNewInstance extends it.unive.lisa.program.cfg.statement.UnaryE
 
 		GlobalVariable nameVar = new GlobalVariable(Untyped.INSTANCE, "name", location);
 		GlobalVariable valueVar = new GlobalVariable(Untyped.INSTANCE, "value", location);
-		HeapDereference derefClazz = new HeapDereference(classMetaType, expr, location);
-		AccessChild accessName = new AccessChild(stringType, derefClazz, nameVar, location);
+
+		AccessChild accessName = new AccessChild(stringType, expr, nameVar, location);
 
 		HeapDereference derefName = new HeapDereference(stringType, accessName, location);
 		AccessChild accessValue = new AccessChild(stringType, derefName, valueVar, location);
 
 		ExpressionSet execExpressions = new ExpressionSet();
-
-		SimpleAbstractDomain<?, ?, ?> innerDomain;
-
-		try {
-			Class<?> c = Reachability.class;
-			Field f = c.getDeclaredField("domain");
-
-			f.setAccessible(true);
-
-			innerDomain = (SimpleAbstractDomain<?, ?, ?>) f.get(analysis.domain);
-		} catch (Exception e) {
-			return state.topExecution();
-		}
-
-		assert (innerDomain != null);
-
-		ValueDomain vdom = (ValueDomain) innerDomain.valueDomain;
-
-		Object executionState = state.getExecutionState();
-		ReachabilityProduct<?> reachabilityProduct = (ReachabilityProduct<?>) executionState;
-
-		SimpleAbstractState simpleAbstractState = (SimpleAbstractState) reachabilityProduct.second;
-		ValueLattice env = (ValueLattice) simpleAbstractState.valueState;
-
-		SemanticOracle oracle = innerDomain.makeOracle(simpleAbstractState);
-		ExpressionSet rewritten = analysis.rewrite(state, accessValue, this);
 
 		AnalysisState<A> noExceptionState = state.bottomExecution();
 		AnalysisState<A> exceptionState = state.bottomExecution();
