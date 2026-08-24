@@ -1,10 +1,5 @@
 package it.unive.jlisa.program.java.constructs.classmetatype;
 
-import java.lang.reflect.Field;
-import java.util.Set;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
 import it.unive.jlisa.program.ReflectionDataUtils;
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.operator.JavaStringEqualsOperator;
@@ -48,6 +43,10 @@ import it.unive.lisa.symbolic.value.operator.binary.ComparisonLt;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.type.UnitType;
 import it.unive.lisa.type.Untyped;
+import java.lang.reflect.Field;
+import java.util.Set;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class ClassGetField extends BinaryExpression implements PluggableStatement {
 	protected Statement originating;

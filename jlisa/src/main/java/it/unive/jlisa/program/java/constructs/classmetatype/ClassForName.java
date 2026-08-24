@@ -1,9 +1,5 @@
 package it.unive.jlisa.program.java.constructs.classmetatype;
 
-import java.lang.reflect.Field;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
 import it.unive.jlisa.frontend.InitializedClassSet;
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.operator.JavaIsClassDefinedOperator;
@@ -45,6 +41,9 @@ import it.unive.lisa.type.Type;
 import it.unive.lisa.type.TypeSystem;
 import it.unive.lisa.type.UnitType;
 import it.unive.lisa.type.Untyped;
+import java.lang.reflect.Field;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class ClassForName extends it.unive.lisa.program.cfg.statement.UnaryExpression implements PluggableStatement {
 	protected Statement originating;

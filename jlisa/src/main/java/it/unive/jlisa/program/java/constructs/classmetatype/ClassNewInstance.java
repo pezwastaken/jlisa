@@ -1,10 +1,5 @@
 package it.unive.jlisa.program.java.constructs.classmetatype;
 
-import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.type.JavaClassType;
 import it.unive.jlisa.program.type.JavaReferenceType;
@@ -43,6 +38,10 @@ import it.unive.lisa.symbolic.value.ValueExpression;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.type.UnitType;
 import it.unive.lisa.type.Untyped;
+import java.lang.reflect.Field;
+import java.util.Collection;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class ClassNewInstance extends it.unive.lisa.program.cfg.statement.UnaryExpression
 		implements
