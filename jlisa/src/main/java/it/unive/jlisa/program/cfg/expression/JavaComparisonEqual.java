@@ -1,9 +1,5 @@
 package it.unive.jlisa.program.cfg.expression;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import it.unive.jlisa.program.type.JavaClassType;
 import it.unive.jlisa.program.type.JavaReferenceType;
 import it.unive.lisa.analysis.AbstractDomain;
@@ -13,7 +9,6 @@ import it.unive.lisa.analysis.AnalysisState;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.StatementStore;
 import it.unive.lisa.interprocedural.InterproceduralAnalysis;
-import it.unive.lisa.lattices.ExpressionSet;
 import it.unive.lisa.program.cfg.CFG;
 import it.unive.lisa.program.cfg.CodeLocation;
 import it.unive.lisa.program.cfg.statement.Expression;
@@ -24,8 +19,6 @@ import it.unive.lisa.symbolic.heap.HeapDereference;
 import it.unive.lisa.symbolic.value.BinaryExpression;
 import it.unive.lisa.symbolic.value.Constant;
 import it.unive.lisa.symbolic.value.GlobalVariable;
-import it.unive.lisa.symbolic.value.Identifier;
-import it.unive.lisa.symbolic.value.PushAny;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonEq;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.type.Untyped;
@@ -59,39 +52,11 @@ public class JavaComparisonEqual extends Equal {
 			throws SemanticException {
 
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
-		CodeLocation location = getLocation();
-
 		boolean bothRef = (left.getStaticType().isReferenceType() || left.getStaticType().isNullType()) && (right.getStaticType().isReferenceType() || right.getStaticType().isNullType());
 		boolean bothPrimitive = !left.getStaticType().isReferenceType() && !right.getStaticType().isReferenceType();
 
-		if (bothPrimitive) {
+		if (bothPrimitive || bothRef) {
 			return super.fwdBinarySemantics(interprocedural, state, left, right, expressions);
-		}
-
-		if (bothRef) {
-			ExpressionSet setl = analysis.rewrite(state, new HeapDereference(Untyped.INSTANCE, left, location), this);
-			ExpressionSet setr = analysis.rewrite(state, new HeapDereference(Untyped.INSTANCE, right, location), this);
-
-			SymbolicExpression c;
-			if (Collections.disjoint(setl.elements, setr.elements)) {
-				c = new Constant(BoolType.INSTANCE, false, location);
-			}
-			else if (setl.size() == 1 && setr.size() == 1 && setl.equals(setr)) {
-				SymbolicExpression l = setl.iterator().next();
-				SymbolicExpression r = setr.iterator().next();
-				if (l instanceof Identifier l2 && r instanceof Identifier r2) {
-					if (l2.isWeak() || r2.isWeak())
-						c = new PushAny(BoolType.INSTANCE, location);
-					else
-						c = new Constant(BoolType.INSTANCE, true, location);
-				}
-				else
-					c = new Constant(BoolType.INSTANCE, true, location);
-			}
-			else {
-				c = new PushAny(BoolType.INSTANCE, location);
-			}
-			return analysis.smallStepSemantics(state, c, this);
 		}
 
 		// try unboxing
@@ -138,11 +103,12 @@ public class JavaComparisonEqual extends Equal {
 			JavaClassType t,
 			StatementStore<A> expressions)
 			throws SemanticException {
+		CodeLocation location = getLocation();
 		assert(toUnbox.getStaticType().isReferenceType());
 
-		GlobalVariable g = new GlobalVariable(Untyped.INSTANCE, "value", getLocation());
-		HeapDereference deref = new HeapDereference(t, toUnbox, getLocation());
-		AccessChild a = new AccessChild(JavaClassType.getUnwrappedType(t), deref, g, getLocation());
+		GlobalVariable g = new GlobalVariable(Untyped.INSTANCE, "value", location);
+		HeapDereference deref = new HeapDereference(t, toUnbox, location);
+		AccessChild a = new AccessChild(JavaClassType.getUnwrappedType(t), deref, g, location);
 		return a;
 	}
 }

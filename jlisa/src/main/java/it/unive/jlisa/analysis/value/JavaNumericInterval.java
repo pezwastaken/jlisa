@@ -24,8 +24,14 @@ import it.unive.jlisa.program.operator.JavaMathTanOperator;
 import it.unive.jlisa.program.operator.JavaMathToRadiansOperator;
 import it.unive.jlisa.program.operator.JavaStringCharAtOperator;
 import it.unive.jlisa.program.operator.JavaStringLengthOperator;
+import it.unive.jlisa.program.type.JavaByteType;
 import it.unive.jlisa.program.type.JavaCharType;
+import it.unive.jlisa.program.type.JavaDoubleType;
+import it.unive.jlisa.program.type.JavaFloatType;
+import it.unive.jlisa.program.type.JavaIntType;
+import it.unive.jlisa.program.type.JavaLongType;
 import it.unive.jlisa.program.type.JavaNumericType;
+import it.unive.jlisa.program.type.JavaShortType;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.SemanticOracle;
 import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
@@ -72,16 +78,21 @@ public class JavaNumericInterval extends Interval {
 
 	public IntInterval fromConstant(
 			Constant constant) {
-		double value = ((Number) constant.getValue()).doubleValue();
-		if (Double.isNaN(value)) {
-			return IntInterval.BOTTOM; // not a number
-		}
 
-		if (value == Double.POSITIVE_INFINITY || value == Double.NEGATIVE_INFINITY) {
-			return IntInterval.TOP;
-		}
+		if (constant.getStaticType() == JavaFloatType.INSTANCE || constant.getStaticType() == JavaDoubleType.INSTANCE) {
+			double valueD = ((Number) constant.getValue()).doubleValue();
+			if (Double.isNaN(valueD))
+				return IntInterval.BOTTOM; // not a number
+			if (Double.isInfinite(valueD))
+				return IntInterval.TOP;
 
-		return new IntInterval(new MathNumber(value), new MathNumber(value));
+			return new IntInterval(new MathNumber(valueD), new MathNumber(valueD));
+		}
+		else{
+			// integer type
+			long valueL = ((Number) constant.getValue()).longValue();
+			return new IntInterval(new MathNumber(valueL), new MathNumber(valueL));
+		}
 	}
 
 	@Override
@@ -536,17 +547,17 @@ public class JavaNumericInterval extends Interval {
 		if (operator instanceof JavaLongRotateRightOperator)
 			return new IntInterval(-1, 1);
 		if (operator instanceof JavaLongCompareOperator)
-			return new IntInterval(-1, 1);
+			return typeBounds(JavaIntType.INSTANCE);
 		if (operator instanceof JavaFloatCompareOperator)
-			return new IntInterval(-1, 1);
+			return typeBounds(JavaIntType.INSTANCE);
 		if (operator instanceof JavaDoubleCompareOperator)
-			return new IntInterval(-1, 1);
+			return typeBounds(JavaIntType.INSTANCE);
 		if (operator instanceof JavaFloatCompareOperator)
-			return new IntInterval(-1, 1);
+			return typeBounds(JavaIntType.INSTANCE);
 		if (operator instanceof JavaByteCompareOperator)
-			return new IntInterval(-1, 1);
+			return typeBounds(JavaIntType.INSTANCE);
 		if (operator instanceof JavaIntegerCompareOperator)
-			return new IntInterval(-1, 1);
+			return typeBounds(JavaIntType.INSTANCE);
 
 		return super.evalBinaryExpression(expression, left, right, pp, oracle);
 	}
