@@ -24,14 +24,11 @@ import it.unive.jlisa.program.operator.JavaMathTanOperator;
 import it.unive.jlisa.program.operator.JavaMathToRadiansOperator;
 import it.unive.jlisa.program.operator.JavaStringCharAtOperator;
 import it.unive.jlisa.program.operator.JavaStringLengthOperator;
-import it.unive.jlisa.program.type.JavaByteType;
 import it.unive.jlisa.program.type.JavaCharType;
 import it.unive.jlisa.program.type.JavaDoubleType;
 import it.unive.jlisa.program.type.JavaFloatType;
 import it.unive.jlisa.program.type.JavaIntType;
-import it.unive.jlisa.program.type.JavaLongType;
 import it.unive.jlisa.program.type.JavaNumericType;
-import it.unive.jlisa.program.type.JavaShortType;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.SemanticOracle;
 import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
@@ -45,6 +42,9 @@ import it.unive.lisa.symbolic.value.ValueExpression;
 import it.unive.lisa.symbolic.value.operator.AdditionOperator;
 import it.unive.lisa.symbolic.value.operator.SubtractionOperator;
 import it.unive.lisa.symbolic.value.operator.binary.BinaryOperator;
+import it.unive.lisa.symbolic.value.operator.binary.BitwiseShiftLeft;
+import it.unive.lisa.symbolic.value.operator.binary.BitwiseShiftRight;
+import it.unive.lisa.symbolic.value.operator.binary.BitwiseUnsignedShiftRight;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonEq;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonGe;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonGt;
@@ -558,8 +558,112 @@ public class JavaNumericInterval extends Interval {
 			return typeBounds(JavaIntType.INSTANCE);
 		if (operator instanceof JavaIntegerCompareOperator)
 			return typeBounds(JavaIntType.INSTANCE);
+		if (operator instanceof BitwiseShiftLeft)
+			return evalShiftLeft(expression, left, right, pp, oracle);
+		if (operator instanceof BitwiseShiftRight)
+			return evalShiftRight(left, right, false);
+		if (operator instanceof BitwiseUnsignedShiftRight)
+			return evalShiftRight(left, right, true);
 
 		return super.evalBinaryExpression(expression, left, right, pp, oracle);
+	}
+
+	private IntInterval evalShiftLeft(
+			BinaryExpression expression,
+			IntInterval x,
+			IntInterval s,
+			ProgramPoint pp,
+			SemanticOracle oracle)
+			throws SemanticException {
+		JavaNumericType type = integralTypeOf(expression, pp, oracle);
+		if (type == null)
+			return top();
+		int bits = type.getNBits();
+		if (s.getLow().compareTo(MathNumber.ZERO) < 0 || s.getHigh().compareTo(new MathNumber(bits - 1L)) > 0)
+			return top();
+
+		int loS, hiS;
+		try {
+			loS = s.getLow().toInt();
+			hiS = s.getHigh().toInt();
+		} catch (MathNumberConversionException e) {
+			return top();
+		}
+
+		MathNumber twoLoS = powerOfTwo(loS);
+		MathNumber twoHiS = powerOfTwo(hiS);
+		MathNumber a = x.getLow().multiply(twoLoS);
+		MathNumber b = x.getLow().multiply(twoHiS);
+		MathNumber c = x.getHigh().multiply(twoLoS);
+		MathNumber d = x.getHigh().multiply(twoHiS);
+		MathNumber lo = a.min(b).min(c).min(d);
+		MathNumber hi = a.max(b).max(c).max(d);
+
+		IntInterval bounds = typeBounds(type);
+		if (lo.compareTo(bounds.getLow()) < 0 || hi.compareTo(bounds.getHigh()) > 0)
+			// exact result does not fit the type: real execution would wrap
+			return top();
+		return new IntInterval(lo, hi);
+	}
+
+	private IntInterval evalShiftRight(
+			IntInterval x,
+			IntInterval s,
+			boolean unsigned) {
+		if (s.getLow().compareTo(MathNumber.ZERO) < 0)
+			return top();
+		if (unsigned && x.getLow().compareTo(MathNumber.ZERO) < 0)
+			return top();
+
+		int loS, hiS;
+		try {
+			loS = s.getLow().toInt();
+			hiS = s.highIsPlusInfinity() ? Integer.MAX_VALUE : s.getHigh().toInt();
+		} catch (MathNumberConversionException e) {
+			return top();
+		}
+		// beyond the bit width every shift amount yields the same result (0,
+		// or -1 for negative x under arithmetic shift): cap hiS so
+		// powerOfTwo below stays cheap regardless of how large s claims to be
+		hiS = Math.min(hiS, 64);
+
+		MathNumber twoLoS = powerOfTwo(loS);
+		MathNumber twoHiS = powerOfTwo(hiS);
+		MathNumber a = floorDivide(x.getLow(), twoLoS);
+		MathNumber b = floorDivide(x.getLow(), twoHiS);
+		MathNumber c = floorDivide(x.getHigh(), twoLoS);
+		MathNumber d = floorDivide(x.getHigh(), twoHiS);
+		MathNumber lo = a.min(b).min(c).min(d);
+		MathNumber hi = a.max(b).max(c).max(d);
+		return new IntInterval(lo, hi);
+	}
+
+	private static MathNumber floorDivide(
+			MathNumber n,
+			MathNumber d) {
+		if (n.isInfinite())
+			return n.isPositive() == d.isPositive() ? MathNumber.PLUS_INFINITY : MathNumber.MINUS_INFINITY;
+		return n.divide(d).roundDown();
+	}
+
+	private static MathNumber powerOfTwo(
+			int exponent) {
+		MathNumber result = MathNumber.ONE;
+		MathNumber two = new MathNumber(2L);
+		for (int i = 0; i < exponent; i++)
+			result = result.multiply(two);
+		return result;
+	}
+
+	private static JavaNumericType integralTypeOf(
+			BinaryExpression expression,
+			ProgramPoint pp,
+			SemanticOracle oracle)
+			throws SemanticException {
+		Type type = oracle.getDynamicTypeOf(expression, pp);
+		if (!(type instanceof JavaNumericType numType) || !numType.isIntegral())
+			return null;
+		return numType;
 	}
 
 	@Override

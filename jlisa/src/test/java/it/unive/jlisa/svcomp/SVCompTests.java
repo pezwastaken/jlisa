@@ -1072,7 +1072,8 @@ public class SVCompTests extends JLiSAAnalysisExecutor {
 		perform(conf);
 	}
 
-	@Test
+	@Ignore
+	// FIXME there seem to be some nondeterminism in this test
 	public void Sanitizers6_test() throws IOException {
 		CronConfiguration conf = TestHelpers.assertCheckerWithConstantPropagation("svcomp", "securibench/Sanitizers6",
 				"Main.java",

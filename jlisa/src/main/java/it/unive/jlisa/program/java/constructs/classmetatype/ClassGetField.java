@@ -1,6 +1,5 @@
 package it.unive.jlisa.program.java.constructs.classmetatype;
 
-import it.unive.jlisa.analysis.JavaReachability;
 import it.unive.jlisa.program.ReflectionDataUtils;
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.operator.JavaStringEqualsOperator;
@@ -14,6 +13,7 @@ import it.unive.lisa.analysis.AbstractLattice;
 import it.unive.lisa.analysis.Analysis;
 import it.unive.lisa.analysis.AnalysisState;
 import it.unive.lisa.analysis.AnalysisState.Error;
+import it.unive.lisa.analysis.Reachability;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.SemanticOracle;
 import it.unive.lisa.analysis.SimpleAbstractDomain;
@@ -422,6 +422,7 @@ public class ClassGetField extends BinaryExpression implements PluggableStatemen
 		return (UnitType) t;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>,
 			D extends AbstractDomain<A>> Stream<it.unive.lisa.symbolic.value.BinaryExpression> extractConstraints(
 					InterproceduralAnalysis<A, D> interprocedural,
@@ -433,7 +434,7 @@ public class ClassGetField extends BinaryExpression implements PluggableStatemen
 		SimpleAbstractDomain<?, ?, ?> innerDomain;
 
 		try {
-			Class<?> c = JavaReachability.class;
+			Class<?> c = Reachability.class;
 			Field f = c.getDeclaredField("domain");
 
 			f.setAccessible(true);
