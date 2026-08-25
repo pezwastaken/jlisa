@@ -1,6 +1,5 @@
 package it.unive.jlisa.program.java.constructs.classmetatype;
 
-import it.unive.jlisa.analysis.JavaReachability;
 import it.unive.jlisa.frontend.InitializedClassSet;
 import it.unive.jlisa.program.cfg.expression.JavaNewObj;
 import it.unive.jlisa.program.operator.JavaIsClassDefinedOperator;
@@ -11,6 +10,7 @@ import it.unive.lisa.analysis.AbstractLattice;
 import it.unive.lisa.analysis.Analysis;
 import it.unive.lisa.analysis.AnalysisState;
 import it.unive.lisa.analysis.AnalysisState.Error;
+import it.unive.lisa.analysis.Reachability;
 import it.unive.lisa.analysis.SemanticException;
 import it.unive.lisa.analysis.SemanticOracle;
 import it.unive.lisa.analysis.SimpleAbstractDomain;
@@ -202,6 +202,7 @@ public class ClassForName extends it.unive.lisa.program.cfg.statement.UnaryExpre
 		return (UnitType) t;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>, D extends AbstractDomain<A>> Stream<BinaryExpression> extractConstraints(
 			InterproceduralAnalysis<A, D> interprocedural,
 			AnalysisState<A> state,
@@ -212,7 +213,7 @@ public class ClassForName extends it.unive.lisa.program.cfg.statement.UnaryExpre
 		SimpleAbstractDomain<?, ?, ?> innerDomain;
 
 		try {
-			Class<?> c = JavaReachability.class;
+			Class<?> c = Reachability.class;
 			Field f = c.getDeclaredField("domain");
 
 			f.setAccessible(true);

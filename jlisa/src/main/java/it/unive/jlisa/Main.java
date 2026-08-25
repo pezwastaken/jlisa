@@ -1,6 +1,5 @@
 package it.unive.jlisa;
 
-import it.unive.jlisa.analysis.JavaReachability;
 import it.unive.jlisa.analysis.heap.JavaFieldSensitivePointBasedHeap;
 import it.unive.jlisa.analysis.type.JavaInferredTypes;
 import it.unive.jlisa.analysis.value.ConstantPropagationWithIntervals;
@@ -8,13 +7,14 @@ import it.unive.jlisa.checkers.AssertChecker;
 import it.unive.jlisa.frontend.JavaFrontend;
 import it.unive.jlisa.frontend.exceptions.CSVExceptionWriter;
 import it.unive.jlisa.frontend.exceptions.ParsingException;
-import it.unive.jlisa.interprocedural.callgraph.JavaInliningAnalysis;
 import it.unive.jlisa.interprocedural.callgraph.JavaRTACallGraph;
 import it.unive.lisa.LiSA;
+import it.unive.lisa.analysis.Reachability;
 import it.unive.lisa.analysis.SimpleAbstractDomain;
 import it.unive.lisa.analysis.value.ValueDomain;
 import it.unive.lisa.conf.LiSAConfiguration;
 import it.unive.lisa.interprocedural.ReturnTopPolicy;
+import it.unive.lisa.interprocedural.inlining.InliningAnalysis;
 import it.unive.lisa.listeners.BottomTopListener;
 import it.unive.lisa.listeners.CallResolutionListener;
 import it.unive.lisa.outputs.HtmlResults;
@@ -293,7 +293,7 @@ public class Main {
 		conf.workdir = outdir;
 		conf.outputs.add(new JSONResults<>());
 		conf.outputs.add(new JSONReportDumper());
-		conf.interproceduralAnalysis = new JavaInliningAnalysis<>(150);
+		conf.interproceduralAnalysis = new InliningAnalysis<>(150, false);
 		conf.callGraph = new JavaRTACallGraph();
 		conf.openCallPolicy = ReturnTopPolicy.INSTANCE;
 		switch (checkerName) {
@@ -314,7 +314,7 @@ public class Main {
 			throw new ParseException("Invalid numerical domain name: " + numericalDomain);
 		}
 
-		conf.analysis = new JavaReachability<>(new SimpleAbstractDomain<>(
+		conf.analysis = new Reachability<>(new SimpleAbstractDomain<>(
 				new JavaFieldSensitivePointBasedHeap(),
 				domain,
 				new JavaInferredTypes()));
