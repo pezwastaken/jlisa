@@ -137,8 +137,6 @@ public class JavaAccessInstanceGlobal
 					SymbolicExpression expr,
 					StatementStore<A> expressions)
 					throws SemanticException {
-		if (this.toString().contains("next::x"))
-			System.out.println("here");
 		CodeLocation loc = getLocation();
 
 		AnalysisState<A> result = state.bottomExecution();
