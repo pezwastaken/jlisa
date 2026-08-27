@@ -90,8 +90,7 @@ public class JavaDivision extends Division {
 			return super.fwdBinarySemantics(interprocedural, state, left, right, expressions);
 		else if (sat == Satisfiability.BOTTOM) {
 			return state.bottomExecution();
-		}
-		else {
+		} else {
 			AnalysisState<
 					A> noExceptionState = super.fwdBinarySemantics(interprocedural, state, left, right, expressions);
 

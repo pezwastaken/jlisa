@@ -417,7 +417,8 @@ public class JavaClassType
 			return null;
 	}
 
-	public static boolean isWrapperType(Type t) {
+	public static boolean isWrapperType(
+			Type t) {
 		if (getUnwrappedType(t) != null)
 			return true;
 		return false;

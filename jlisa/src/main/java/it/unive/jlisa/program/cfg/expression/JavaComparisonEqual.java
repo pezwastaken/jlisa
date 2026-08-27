@@ -13,6 +13,8 @@ import it.unive.lisa.program.cfg.CFG;
 import it.unive.lisa.program.cfg.CodeLocation;
 import it.unive.lisa.program.cfg.statement.Expression;
 import it.unive.lisa.program.cfg.statement.Statement;
+import it.unive.lisa.program.cfg.statement.comparison.Equal;
+import it.unive.lisa.program.type.BoolType;
 import it.unive.lisa.symbolic.SymbolicExpression;
 import it.unive.lisa.symbolic.heap.AccessChild;
 import it.unive.lisa.symbolic.heap.HeapDereference;
@@ -22,9 +24,6 @@ import it.unive.lisa.symbolic.value.GlobalVariable;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonEq;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.type.Untyped;
-
-import it.unive.lisa.program.cfg.statement.comparison.Equal;
-import it.unive.lisa.program.type.BoolType;
 
 public class JavaComparisonEqual extends Equal {
 
@@ -52,7 +51,8 @@ public class JavaComparisonEqual extends Equal {
 			throws SemanticException {
 
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
-		boolean bothRef = (left.getStaticType().isReferenceType() || left.getStaticType().isNullType()) && (right.getStaticType().isReferenceType() || right.getStaticType().isNullType());
+		boolean bothRef = (left.getStaticType().isReferenceType() || left.getStaticType().isNullType())
+				&& (right.getStaticType().isReferenceType() || right.getStaticType().isNullType());
 		boolean bothPrimitive = !left.getStaticType().isReferenceType() && !right.getStaticType().isReferenceType();
 
 		if (bothPrimitive || bothRef) {
@@ -63,8 +63,7 @@ public class JavaComparisonEqual extends Equal {
 		AnalysisState<A> res = state.bottomExecution();
 		if (left.getStaticType().isReferenceType()) {
 			res = eqWithUnbox(analysis, state, left, right, expressions);
-		}
-		else {
+		} else {
 			res = eqWithUnbox(analysis, state, right, left, expressions);
 		}
 		return res;
@@ -83,13 +82,13 @@ public class JavaComparisonEqual extends Equal {
 
 		if (t instanceof JavaReferenceType jrt && jrt.getInnerType() instanceof JavaClassType innerType) {
 
-			assert(JavaClassType.isWrapperType(innerType));
+			assert (JavaClassType.isWrapperType(innerType));
 			SymbolicExpression unboxed = unbox(analysis, state, x, innerType, expressions);
 
-			AnalysisState<A> tmp = analysis.smallStepSemantics(state, new BinaryExpression(getStaticType(), unboxed, y, ComparisonEq.INSTANCE, getLocation()), this);
+			AnalysisState<A> tmp = analysis.smallStepSemantics(state,
+					new BinaryExpression(getStaticType(), unboxed, y, ComparisonEq.INSTANCE, getLocation()), this);
 			res = res.lub(tmp);
-		}
-		else {
+		} else {
 			Constant c = new Constant(BoolType.INSTANCE, false, getLocation());
 			res = res.lub(analysis.smallStepSemantics(state, c, this));
 		}
@@ -104,7 +103,7 @@ public class JavaComparisonEqual extends Equal {
 			StatementStore<A> expressions)
 			throws SemanticException {
 		CodeLocation location = getLocation();
-		assert(toUnbox.getStaticType().isReferenceType());
+		assert (toUnbox.getStaticType().isReferenceType());
 
 		GlobalVariable g = new GlobalVariable(Untyped.INSTANCE, "value", location);
 		HeapDereference deref = new HeapDereference(t, toUnbox, location);
@@ -112,4 +111,3 @@ public class JavaComparisonEqual extends Equal {
 		return a;
 	}
 }
-

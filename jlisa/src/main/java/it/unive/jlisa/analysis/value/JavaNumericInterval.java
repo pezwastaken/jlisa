@@ -87,8 +87,7 @@ public class JavaNumericInterval extends Interval {
 				return IntInterval.TOP;
 
 			return new IntInterval(new MathNumber(valueD), new MathNumber(valueD));
-		}
-		else{
+		} else {
 			// integer type
 			long valueL = ((Number) constant.getValue()).longValue();
 			return new IntInterval(new MathNumber(valueL), new MathNumber(valueL));
@@ -534,7 +533,8 @@ public class JavaNumericInterval extends Interval {
 
 		if (operator instanceof SubtractionOperator) {
 			if (!left.isBottom() && !right.isBottom()) {
-				return new IntInterval(left.getLow().subtract(right.getHigh()), left.getHigh().subtract(right.getLow()));
+				return new IntInterval(left.getLow().subtract(right.getHigh()),
+						left.getHigh().subtract(right.getLow()));
 			}
 		}
 
