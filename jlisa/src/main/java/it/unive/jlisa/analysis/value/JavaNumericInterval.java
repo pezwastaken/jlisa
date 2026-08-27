@@ -653,8 +653,9 @@ public class JavaNumericInterval extends Interval {
 			ProgramPoint dest,
 			SemanticOracle oracle)
 			throws SemanticException {
-		if (expression.getStaticType().isBooleanType())
-			// i confronti booleani li decide la ConstantPropagation,
+		if (expression.getLeft().getStaticType().isBooleanType()
+				&& expression.getRight().getStaticType().isBooleanType())
+			// i confronti tra booleani li decide la ConstantPropagation,
 			// l'interval non deve toccare lo stato (altrimenti `true` -> BOTTOM)
 			return environment;
 		return super.assumeBinaryExpression(environment, expression, src, dest, oracle);
