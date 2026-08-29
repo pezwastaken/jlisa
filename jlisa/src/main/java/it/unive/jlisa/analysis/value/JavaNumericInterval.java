@@ -35,10 +35,7 @@ import it.unive.lisa.analysis.nonrelational.value.ValueEnvironment;
 import it.unive.lisa.analysis.numeric.Interval;
 import it.unive.lisa.lattices.Satisfiability;
 import it.unive.lisa.program.cfg.ProgramPoint;
-import it.unive.lisa.symbolic.value.BinaryExpression;
-import it.unive.lisa.symbolic.value.Constant;
-import it.unive.lisa.symbolic.value.UnaryExpression;
-import it.unive.lisa.symbolic.value.ValueExpression;
+import it.unive.lisa.symbolic.value.*;
 import it.unive.lisa.symbolic.value.operator.AdditionOperator;
 import it.unive.lisa.symbolic.value.operator.SubtractionOperator;
 import it.unive.lisa.symbolic.value.operator.binary.BinaryOperator;
@@ -51,6 +48,7 @@ import it.unive.lisa.symbolic.value.operator.binary.ComparisonGt;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonLe;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonLt;
 import it.unive.lisa.symbolic.value.operator.binary.ComparisonNe;
+import it.unive.lisa.symbolic.value.operator.unary.LogicalNegation;
 import it.unive.lisa.symbolic.value.operator.unary.UnaryOperator;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.util.numeric.IntInterval;
@@ -681,5 +679,83 @@ public class JavaNumericInterval extends Interval {
 			return environment;
 		return super.assume(environment, expression, src, dest, oracle);
 	}
+
+        @Override
+        public ValueEnvironment<IntInterval> assumeBinaryExpression(
+                ValueEnvironment<IntInterval> environment,
+                BinaryExpression expression,
+                ProgramPoint src,
+                ProgramPoint dest,
+                SemanticOracle oracle)
+                throws SemanticException {
+
+                Satisfiability sat = satisfies(environment, expression, src, oracle);
+                if (sat == Satisfiability.NOT_SATISFIED)
+                        return environment.bottom();
+                if (sat == Satisfiability.SATISFIED)
+                        return environment;
+
+                if (expression.getOperator() != ComparisonNe.INSTANCE) {
+                        return super.assumeBinaryExpression(environment, expression, src, dest, oracle);
+                }
+
+                Identifier id;
+                IntInterval eval;
+                IntInterval evalId;
+                boolean rightIsExpr;
+                ValueExpression left = (ValueExpression) expression.getLeft();
+                ValueExpression right = (ValueExpression) expression.getRight();
+                if (left instanceof Identifier) {
+                        if (!canProcess(right, src, oracle))
+                                // the expression does not have a numerical value, we do not
+                                // assume anything on it
+                                return environment;
+                        eval = eval(environment, right, src, oracle);
+                        evalId = eval(environment, left, src, oracle);
+                        id = (Identifier) left;
+                        rightIsExpr = true;
+                } else if (right instanceof Identifier) {
+                        if (!canProcess(left, src, oracle))
+                                // the expression does not have a numerical value, we do not
+                                // assume anything on it
+                                return environment;
+                        eval = eval(environment, left, src, oracle);
+                        evalId = eval(environment, right, src, oracle);
+                        id = (Identifier) right;
+                        rightIsExpr = false;
+                } else
+                        return environment;
+
+                ValueEnvironment<IntInterval> updatedEnv = environment;
+                if (eval.isSingleton()) {
+                        if (evalId.getLow().equals(eval.getLow())) {
+                                MathNumber newLow = nextValueUp(id, evalId.getLow());
+                                IntInterval newInterval = new IntInterval(newLow, evalId.getHigh());
+                                updatedEnv = environment.putState(id, newInterval);
+                        }
+                        if (evalId.getHigh().equals(eval.getLow())) {
+                                MathNumber newHigh = nextValueDown(id, evalId.getHigh());
+                                IntInterval newInterval = new IntInterval(evalId.getLow(), newHigh);
+                                updatedEnv = environment.putState(id, newInterval);
+                        }
+                }
+                return updatedEnv;
+        }
+
+        private MathNumber nextValueUp(Identifier id, MathNumber x) {
+                if (id.getStaticType() == JavaFloatType.INSTANCE || id.getStaticType() == JavaDoubleType.INSTANCE) {
+                        // TODO
+                        return x;
+                }
+                return x.add(new MathNumber(1));
+        }
+
+        private MathNumber nextValueDown(Identifier id, MathNumber x) {
+                if (id.getStaticType() == JavaFloatType.INSTANCE || id.getStaticType() == JavaDoubleType.INSTANCE) {
+                        // TODO
+                        return x;
+                }
+                return x.subtract(new MathNumber(1));
+        }
 
 }
