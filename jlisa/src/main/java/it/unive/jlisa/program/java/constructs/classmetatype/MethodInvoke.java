@@ -174,7 +174,7 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 
 		// we don't know whether the method is static or not
 		if (isStaticSat == Satisfiability.UNKNOWN)
-			return state.topExecution();
+			return state;
 
 		AnalysisState<A> exceptionState = state.bottomExecution();
 		AnalysisState<A> noExceptionState = state.bottomExecution();
@@ -193,6 +193,10 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 			return exceptionState;
 
 		List<BinaryExpression> clazzNameConstraints = getClassNameConstraints(interprocedural, state, derefMethod);
+
+                if (clazzNameConstraints.isEmpty()) {
+                        return state;
+                }
 
 		// check the types of the receiver against the type of the declaring
 		// class.

@@ -33,15 +33,13 @@ import it.unive.lisa.symbolic.CFGThrow;
 import it.unive.lisa.symbolic.SymbolicExpression;
 import it.unive.lisa.symbolic.heap.AccessChild;
 import it.unive.lisa.symbolic.heap.HeapDereference;
-import it.unive.lisa.symbolic.value.BinaryExpression;
-import it.unive.lisa.symbolic.value.Constant;
-import it.unive.lisa.symbolic.value.GlobalVariable;
-import it.unive.lisa.symbolic.value.ValueExpression;
+import it.unive.lisa.symbolic.value.*;
 import it.unive.lisa.type.Type;
 import it.unive.lisa.type.TypeSystem;
 import it.unive.lisa.type.UnitType;
 import it.unive.lisa.type.Untyped;
 import java.lang.reflect.Field;
+import java.util.List;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -102,14 +100,16 @@ public class ClassForName extends it.unive.lisa.program.cfg.statement.UnaryExpre
 		// populate the "no exception" path
 		if (sat != Satisfiability.NOT_SATISFIED) {
 
-			Stream<BinaryExpression> constraints = extractConstraints(interprocedural, state, accessExpr);
-			if (constraints == null)
-				return state.topExecution();
+			List<BinaryExpression> constraints = extractConstraints(interprocedural, state, accessExpr).toList();
+
+			if (constraints.isEmpty())
+                                return interprocedural.getAnalysis().smallStepSemantics(state,
+                                        new PushAny(new JavaReferenceType(getStaticType()), getLocation()), this);
 
 			AnalysisState<A> tmp = state;
 			ExpressionSet execExpressions = new ExpressionSet();
 
-			for (BinaryExpression constraint : constraints.toList()) {
+			for (BinaryExpression constraint : constraints) {
 
 				String clazzName = (String) ((Constant) constraint.getLeft()).getValue();
 				UnitType t = getTypeFromStr(clazzName);

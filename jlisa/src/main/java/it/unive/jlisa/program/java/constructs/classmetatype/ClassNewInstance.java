@@ -40,6 +40,8 @@ import it.unive.lisa.type.UnitType;
 import it.unive.lisa.type.Untyped;
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -77,6 +79,8 @@ public class ClassNewInstance extends it.unive.lisa.program.cfg.statement.UnaryE
 			throws SemanticException {
 
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
+
+                Set<Type> types = analysis.getRuntimeTypesOf(state, expr, this);
 
 		ExpressionSet classes = analysis.rewrite(state, new HeapDereference(Untyped.INSTANCE, expr, getLocation()),
 				this);
@@ -119,7 +123,11 @@ public class ClassNewInstance extends it.unive.lisa.program.cfg.statement.UnaryE
 		if (constraints == null)
 			return state.topExecution();
 
-		for (BinaryExpression constraint : constraints.toList()) {
+                List<BinaryExpression> constraintList = constraints.toList();
+                if (constraintList.isEmpty())
+                        return state;
+
+		for (BinaryExpression constraint : constraintList) {
 
 			String dynamicTypeStr = (String) ((Constant) constraint.getLeft()).getValue();
 			dynamicTypeStr = dynamicTypeStr.replace('$', '.');
