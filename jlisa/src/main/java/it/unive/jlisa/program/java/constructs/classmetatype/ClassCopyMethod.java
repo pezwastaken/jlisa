@@ -70,7 +70,6 @@ public class ClassCopyMethod extends it.unive.lisa.program.cfg.statement.UnaryEx
 
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
 		CodeLocation location = getLocation();
-		CFG cfg = getCFG();
 
 		Type intType = JavaIntType.INSTANCE;
 		JavaReferenceType refStringType = new JavaReferenceType(JavaClassType.getStringType());

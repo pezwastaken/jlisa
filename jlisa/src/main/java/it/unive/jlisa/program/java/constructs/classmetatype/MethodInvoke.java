@@ -10,7 +10,18 @@ import it.unive.jlisa.program.cfg.statement.literal.IntLiteral;
 import it.unive.jlisa.program.cfg.statement.literal.LongLiteral;
 import it.unive.jlisa.program.cfg.statement.literal.ShortLiteral;
 import it.unive.jlisa.program.operator.IsMemberStaticOperator;
-import it.unive.jlisa.program.type.*;
+import it.unive.jlisa.program.type.JavaArrayType;
+import it.unive.jlisa.program.type.JavaBooleanType;
+import it.unive.jlisa.program.type.JavaByteType;
+import it.unive.jlisa.program.type.JavaCharType;
+import it.unive.jlisa.program.type.JavaClassType;
+import it.unive.jlisa.program.type.JavaDoubleType;
+import it.unive.jlisa.program.type.JavaFloatType;
+import it.unive.jlisa.program.type.JavaIntType;
+import it.unive.jlisa.program.type.JavaInterfaceType;
+import it.unive.jlisa.program.type.JavaLongType;
+import it.unive.jlisa.program.type.JavaReferenceType;
+import it.unive.jlisa.program.type.JavaShortType;
 import it.unive.jlisa.type.JavaTypeSystem;
 import it.unive.lisa.analysis.AbstractDomain;
 import it.unive.lisa.analysis.AbstractLattice;
@@ -98,8 +109,6 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 			StatementStore<A> expressions)
 			throws SemanticException {
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
-		CodeLocation location = getLocation();
-		CFG cfg = getCFG();
 
 		ExpressionSet methods = analysis.rewrite(state, new HeapDereference(Untyped.INSTANCE, left, getLocation()),
 				this);
@@ -130,8 +139,6 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 
 		Type stringType = JavaClassType.getStringType();
 		JavaReferenceType refStringType = new JavaReferenceType(stringType);
-		Type methodType = JavaClassType.getMethodType();
-		Type refMethodType = new JavaReferenceType(methodType);
 		JavaReferenceType refObjectArrType = JavaArrayType.OBJECT_ARRAY;
 
 		GlobalVariable lengthVar = new GlobalVariable(Untyped.INSTANCE, "length", location);
@@ -374,6 +381,7 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 		return null;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>,
 			D extends AbstractDomain<A>> Stream<it.unive.lisa.symbolic.value.BinaryExpression> extractConstraints(
 					InterproceduralAnalysis<A, D> interprocedural,
@@ -520,11 +528,7 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 			List<BinaryExpression> clazzNameConstraints,
 			SymbolicExpression derefMethod)
 			throws SemanticException {
-
-		CodeLocation loc = getLocation();
-
 		for (BinaryExpression constraint : clazzNameConstraints) {
-
 			String clazzName = (String) ((Constant) constraint.getLeft()).getValue();
 			UnitType clazzUt = getTypeFromStr(clazzName);
 
@@ -595,8 +599,6 @@ public class MethodInvoke extends TernaryExpression implements PluggableStatemen
 			SymbolicExpression derefMethod,
 			StatementStore<A> expressions)
 			throws SemanticException {
-
-		Analysis<A, D> analysis = interprocedural.getAnalysis();
 		CFG cfg = getCFG();
 		CodeLocation location = getLocation();
 

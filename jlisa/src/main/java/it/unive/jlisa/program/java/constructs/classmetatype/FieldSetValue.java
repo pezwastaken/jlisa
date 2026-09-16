@@ -91,8 +91,6 @@ public class FieldSetValue extends TernaryExpression implements PluggableStateme
 		// right is the new value
 
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
-		CodeLocation loc = getLocation();
-		CFG cfg = getCFG();
 
 		ExpressionSet classes = analysis.rewrite(state, new HeapDereference(Untyped.INSTANCE, left, getLocation()),
 				this);
@@ -117,7 +115,6 @@ public class FieldSetValue extends TernaryExpression implements PluggableStateme
 		CodeLocation loc = getLocation();
 		CFG cfg = getCFG();
 
-		Type fieldMetaType = JavaClassType.getFieldMetaType();
 		Type stringType = getProgram().getTypes().getStringType();
 		JavaReferenceType refStringType = new JavaReferenceType(stringType);
 		Type classMetaType = JavaClassType.getClassMetaType();
@@ -164,7 +161,6 @@ public class FieldSetValue extends TernaryExpression implements PluggableStateme
 			assert (clazzUnit instanceof CompilationUnit);
 
 			UnitType ut = getTypeFromStr(clazzName);
-			CompilationUnit compUnit = (CompilationUnit) clazzUnit;
 			state = InitializedClassSet.initialize(state, new JavaReferenceType(ut), this, interprocedural);
 
 			for (BinaryExpression fieldNameConstraint : fieldNameConstraints) {
@@ -268,6 +264,7 @@ public class FieldSetValue extends TernaryExpression implements PluggableStateme
 		return 0;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>,
 			D extends AbstractDomain<A>> Stream<it.unive.lisa.symbolic.value.BinaryExpression> extractConstraints(
 					InterproceduralAnalysis<A, D> interprocedural,

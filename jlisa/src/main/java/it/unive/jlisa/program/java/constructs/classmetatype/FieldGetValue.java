@@ -101,8 +101,6 @@ public class FieldGetValue extends BinaryExpression implements PluggableStatemen
 			throws SemanticException {
 
 		Analysis<A, D> analysis = interprocedural.getAnalysis();
-		CodeLocation location = getLocation();
-		CFG cfg = getCFG();
 
 		ExpressionSet classes = analysis.rewrite(state, new HeapDereference(Untyped.INSTANCE, left, getLocation()),
 				this);
@@ -126,7 +124,6 @@ public class FieldGetValue extends BinaryExpression implements PluggableStatemen
 		CodeLocation location = getLocation();
 		CFG cfg = getCFG();
 
-		Type fieldMetaType = JavaClassType.getFieldMetaType();
 		Type stringType = getProgram().getTypes().getStringType();
 		JavaReferenceType refStringType = new JavaReferenceType(stringType);
 		Type classMetaType = JavaClassType.getClassMetaType();
@@ -175,7 +172,6 @@ public class FieldGetValue extends BinaryExpression implements PluggableStatemen
 			assert (clazzUnit instanceof CompilationUnit);
 
 			UnitType t = getTypeFromStr(clazzName);
-			CompilationUnit compUnit = (CompilationUnit) clazzUnit;
 			state = InitializedClassSet.initialize(state, new JavaReferenceType(t), this, interprocedural);
 
 			for (it.unive.lisa.symbolic.value.BinaryExpression fieldNameConstraint : fieldNameConstraints) {
@@ -346,6 +342,7 @@ public class FieldGetValue extends BinaryExpression implements PluggableStatemen
 		return null;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>,
 			D extends AbstractDomain<A>> Stream<it.unive.lisa.symbolic.value.BinaryExpression> extractConstraints(
 					InterproceduralAnalysis<A, D> interprocedural,

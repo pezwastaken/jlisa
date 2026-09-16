@@ -187,6 +187,7 @@ public class ClassNewInstance extends it.unive.lisa.program.cfg.statement.UnaryE
 
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>,
 			D extends AbstractDomain<A>> Stream<BinaryExpression> extractConstraints(
 					InterproceduralAnalysis<A, D> interprocedural,

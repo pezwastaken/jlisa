@@ -420,7 +420,6 @@ public class ClassGetMethod extends TernaryExpression implements PluggableStatem
 		res = res.lub(sameLen);
 
 		boolean outOfBoundsParamsArr = false;
-		boolean allParametersMatch = true;
 
 		// stop when we are out of bounds
 		for (int i = 0; outOfBoundsParamsArr == false; ++i) {
@@ -544,6 +543,7 @@ public class ClassGetMethod extends TernaryExpression implements PluggableStatem
 		return (UnitType) t;
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private <A extends AbstractLattice<A>, D extends AbstractDomain<A>> Stream<BinaryExpression> extractConstraints(
 			InterproceduralAnalysis<A, D> interprocedural,
 			AnalysisState<A> state,

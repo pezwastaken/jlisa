@@ -130,7 +130,8 @@ public class AssertChecker<V extends ValueLattice<V>>
 			SemanticTool<
 					ReachabilityProduct<
 							SimpleAbstractState<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>>,
-					Reachability<SimpleAbstractDomain<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>,
+					Reachability<
+							SimpleAbstractDomain<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>,
 							SimpleAbstractState<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>>> tool,
 			CFG graph,
 			Statement node)
@@ -174,7 +175,8 @@ public class AssertChecker<V extends ValueLattice<V>>
 			SemanticTool<
 					ReachabilityProduct<
 							SimpleAbstractState<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>>,
-					Reachability<SimpleAbstractDomain<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>,
+					Reachability<
+							SimpleAbstractDomain<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>,
 							SimpleAbstractState<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>>> tool,
 			CFG graph,
 			AssertStatement node)
@@ -379,7 +381,8 @@ public class AssertChecker<V extends ValueLattice<V>>
 			SemanticTool<
 					ReachabilityProduct<
 							SimpleAbstractState<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>>,
-					Reachability<SimpleAbstractDomain<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>,
+					Reachability<
+							SimpleAbstractDomain<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>,
 							SimpleAbstractState<HeapEnvironment<AllocationSites>, V, TypeEnvironment<TypeSet>>>> tool) {
 		this.workDir = tool.getConfiguration().workdir;
 		SemanticCheck.super.beforeExecution(tool);
