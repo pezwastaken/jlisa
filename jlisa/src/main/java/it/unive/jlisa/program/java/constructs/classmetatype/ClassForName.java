@@ -142,11 +142,7 @@ public class ClassForName extends it.unive.lisa.program.cfg.statement.UnaryExpre
 
 				ExpressionSet clazz = callState.getExecutionExpressions();
 
-				InternalInitClassMetaObject initClazz = new InternalInitClassMetaObject(cfg, location, t, this);
-				AnalysisState<A> initState = initClazz.forwardSemanticsAux(interprocedural, callState,
-						new ExpressionSet[] { clazz }, expressions);
-
-				tmp = initState;
+				tmp = callState;
 
 				execExpressions = execExpressions.lub(clazz);
 			}
